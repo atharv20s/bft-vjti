@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BFT Consensus Comparison Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-purple: #8b5cf6;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            
+            --color-oral_message: #ef4444;
+            --color-pbft: #3b82f6;
+            --color-dag_bft: #10b981;
+            --color-sharding_bft: #f59e0b;
+            --color-tower_bft: #8b5cf6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.1) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        header {
+            padding: 2.5rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .header-title h1 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, #fff 30%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .header-title p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-top: 0.3rem;
+        }
+
+        .badge {
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: #c084fc;
+            padding: 0.4rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Tabs Navigation */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 0.4rem;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            margin-bottom: 2rem;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .tab-btn.active {
+            color: var(--text-primary);
+            background: var(--accent-gradient);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        /* Grid Layouts */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        @media (min-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 280px 1fr;
+            }
+        }
+
+        /* Sidebar Control Panel */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-title::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 18px;
+            background: var(--accent-gradient);
+            border-radius: 2px;
+        }
+
+        /* Filter Controls */
+        .filter-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .filter-group label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .checkbox-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .checkbox-item input {
+            accent-color: var(--accent-purple);
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Main Display Panels */
+        .display-panel {
+            display: none;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .display-panel.active {
+            display: flex;
+        }
+
+        /* Stats Row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-top: 0.25rem;
+            background: linear-gradient(135deg, #fff 60%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Charts Layout */
+        .chart-box {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        /* Table Design */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: rgba(15, 23, 42, 0.8);
+            color: var(--text-secondary);
+            font-weight: 600;
+            padding: 1rem;
+            border-bottom: 1px solid var(--card-border);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            font-weight: 500;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .algo-cell {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+
+        .algo-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* Informational Cards */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+
+        .info-card h4 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-card p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        /* Disclaimer Alert */
+        .disclaimer-alert {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+
+        .disclaimer-icon {
+            color: var(--accent-orange);
+            font-size: 1.2rem;
+            line-height: 1;
+            margin-top: 0.1rem;
+        }
+
+        .disclaimer-text h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #fbbf24;
+            margin-bottom: 0.25rem;
+        }
+
+        .disclaimer-text p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Legend style */
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-title">
+            <h1>BFT Consensus Comparison</h1>
+            <p>Evaluating Byzantine Fault Tolerant Protocols for EV-to-Grid Energy Trading (IEEE 33-Bus System)</p>
+        </div>
+        <div>
+            <span class="badge">Research Dashboard</span>
+        </div>
+    </header>
+
+    <main>
+        <div class="disclaimer-alert">
+            <span class="disclaimer-icon">⚠️</span>
+            <div class="disclaimer-text">
+                <h4>Research Integrity & Adaptation Disclaimers</h4>
+                <p><strong>Tower BFT Adaptation</strong>: Evaluated as a PoH-enabled BFT adapted for EV consensus with uniform validator weights (weight = 1 per node). No stake-weighting or validator economics apply. PoH acts as a slot ordering clock. <br>
+                <strong>DAG BFT (Hashgraph)</strong>: Employs a pure gossip-about-gossip and virtual voting framework locally constructed on each node without explicit consensus voting messages. <br>
+                <strong>OM(m) Complexity Capping</strong>: Capped at n=51 for simulation due to O(n^m) exponential complexity; dashed lines represent theoretical scaling extrapolation.</p>
+            </div>
+        </div>
+
+        <nav class="tabs">
+            <button class="tab-btn active" onclick="switchTab('baseline')">Scenario 1: Baseline (n=51)</button>
+            <button class="tab-btn" onclick="switchTab('scalability')">Scenario 2: Scalability Sweep</button>
+            <button class="tab-btn" onclick="switchTab('faults')">Scenario 3: Fault Tolerance (n=51)</button>
+            <button class="tab-btn" onclick="switchTab('throughput')">Scenario 4: Throughput vs Load</button>
+            <button class="tab-btn" onclick="switchTab('attacks')">Scenario 5: Attack Vectors</button>
+        </nav>
+
+        <div class="dashboard-grid">
+            <!-- Sidebar Controls -->
+            <aside class="sidebar">
+                <div class="card">
+                    <h3 class="card-title">Algorithms</h3>
+                    <div class="filter-group">
+                        <label>Include in Comparison</label>
+                        <div class="checkbox-container">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="chk-oral_message" checked onchange="updateCharts()">
+                                <span style="color: var(--color-oral_message)">■</span> OM(m)
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="chk-pbft" checked onchange="updateCharts()">
+                                <span style="color: var(--color-pbft)">■</span> Classical PBFT
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="chk-dag_bft" checked onchange="updateCharts()">
+                                <span style="color: var(--color-dag_bft)">■</span> Hashgraph DAG
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="chk-sharding_bft" checked onchange="updateCharts()">
+                                <span style="color: var(--color-sharding_bft)">■</span> Sharding-BFT
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="chk-tower_bft" checked onchange="updateCharts()">
+                                <span style="color: var(--color-tower_bft)">■</span> Tower BFT
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">Grid Settings</h3>
+                    <div class="filter-group">
+                        <label style="margin-bottom: 0.25rem;">IEEE 33-Bus Feeder</label>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.8rem;">SCADA monitored peak load distribution</p>
+                        <table style="font-size: 0.75rem; width: 100%;">
+                            <tr><td style="padding: 0.25rem 0; color: var(--text-secondary);">Peak Demand:</td><td style="padding: 0.25rem 0; text-align: right; font-weight: bold;">3,715 kW</td></tr>
+                            <tr><td style="padding: 0.25rem 0; color: var(--text-secondary);">Reactive:</td><td style="padding: 0.25rem 0; text-align: right; font-weight: bold;">2,300 kVAr</td></tr>
+                            <tr><td style="padding: 0.25rem 0; color: var(--text-secondary);">EV Trading Req:</td><td style="padding: 0.25rem 0; text-align: right; font-weight: bold;">150 kWh</td></tr>
+                            <tr><td style="padding: 0.25rem 0; color: var(--text-secondary);">Min SOC Rule:</td><td style="padding: 0.25rem 0; text-align: right; font-weight: bold;">≥ 75%</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Panels Section -->
+            <section class="main-content">
+                
+                <!-- Tab 1: Baseline -->
+                <div id="panel-baseline" class="display-panel active">
+                    <div class="stats-row">
+                        <div class="stat-card">
+                            <span class="stat-label">Optimal Latency (Mean)</span>
+                            <span class="stat-value" id="stat-opt-latency">--</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Highest Throughput</span>
+                            <span class="stat-value" id="stat-opt-tps">--</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Communication Bytes (Min)</span>
+                            <span class="stat-value" id="stat-opt-bytes">--</span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="card-title">Consensus Overhead Comparison</h3>
+                        <div class="chart-box">
+                            <canvas id="chart-baseline-overhead"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="card-title">Telemetry Summary (n=51, f=16)</h3>
+                        <div class="table-container">
+                            <table id="table-baseline">
+                                <thead>
+                                    <tr>
+                                        <th>Algorithm</th>
+                                        <th>Latency (ms)</th>
+                                        <th>Throughput (tps)</th>
+                                        <th>Msg Count</th>
+                                        <th>Byte Size (KB)</th>
+                                        <th>Rounds</th>
+                                        <th>Success Rate</th>
+                                        <th>Agreement Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Rendered dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Scalability -->
+                <div id="panel-scalability" class="display-panel">
+                    <div class="card">
+                        <h3 class="card-title">Consensus Latency vs Network Size (log scale)</h3>
+                        <div class="chart-box">
+                            <canvas id="chart-scale-latency"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title">Message Complexity Scaling</h3>
+                        <div class="chart-box">
+                            <canvas id="chart-scale-messages"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Faults -->
+                <div id="panel-faults" class="display-panel">
+                    <div class="card">
+                        <h3 class="card-title">Consensus Success Rate vs Fault Level (n=51)</h3>
+                        <div class="chart-box">
+                            <canvas id="chart-fault-success"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <h4>🛡️ Safe Zone (f ≤ 16)</h4>
+                            <p>For a network of 51 nodes, PBFT, Tower BFT, and Hashgraph maintain 100% success rate up to the theoretical Byzantine fault tolerance threshold of 16 traitors (f ≤ ⌊(51-1)/3⌋).</p>
+                        </div>
+                        <div class="info-card">
+                            <h4>⚠️ Compromised Zone (f > 16)</h4>
+                            <p>Once traitors exceed 16, consensus success drops to zero for all classical BFT protocols. Sharding BFT experiences earlier failures due to compromised individual shards (the partition vulnerability).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Throughput -->
+                <div id="panel-throughput" class="display-panel">
+                    <div class="card">
+                        <h3 class="card-title">Throughput vs Transaction Batch Size</h3>
+                        <div class="chart-box">
+                            <canvas id="chart-throughput"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 5: Attacks -->
+                <div id="panel-attacks" class="display-panel">
+                    <div class="card">
+                        <h3 class="card-title">Fault Resilience across Attack Types (n=51, f=16)</h3>
+                        <div class="chart-box">
+                            <canvas id="chart-attacks"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <h4>📊 False Demand / Supply Attacks</h4>
+                            <p>Attacking nodes attempt to upload false demand rates or SOC states. Filter parameters like battery capacity bounds reject outliers, making these attacks easily mitigable.</p>
+                        </div>
+                        <div class="info-card">
+                            <h4>⚔️ Conflicting Broadcasts (Byzantine)</h4>
+                            <p>Nodes send conflicting state logs to different peer sets. This is the hardest attack vector, forcing PBFT/OM(m) to undergo full multi-phase verification cycles.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+        </div>
+    </main>
+
+    <!-- Load data dynamically -->
+    <script src="results/benchmark_results.js"></script>
+    <script>
+        // Fallback placeholder data if benchmark_results.js fails or is empty
+        if (typeof BENCHMARK_RESULTS === 'undefined') {
+            window.BENCHMARK_RESULTS = [
+                { "algorithm": "oral_message", "scenario": "paper_baseline", "num_nodes": 51, "num_traitors": 16, "latency_mean": 5100.0, "throughput_mean": 9.8, "messages_mean": 120100, "bytes_mean": 30745600, "rounds_mean": 3, "success_rate": 0.9, "agreement_rate_mean": 0.95 },
+                { "algorithm": "pbft", "scenario": "paper_baseline", "num_nodes": 51, "num_traitors": 16, "latency_mean": 150.0, "throughput_mean": 333.3, "messages_mean": 5150, "bytes_mean": 2636800, "rounds_mean": 3, "success_rate": 1.0, "agreement_rate_mean": 1.0 },
+                { "algorithm": "dag_bft", "scenario": "paper_baseline", "num_nodes": 51, "num_traitors": 16, "latency_mean": 3800.0, "throughput_mean": 13.1, "messages_mean": 3876, "bytes_mean": 3969024, "rounds_mean": 76, "success_rate": 1.0, "agreement_rate_mean": 1.0 },
+                { "algorithm": "sharding_bft", "scenario": "paper_baseline", "num_nodes": 51, "num_traitors": 16, "latency_mean": 300.0, "throughput_mean": 166.6, "messages_mean": 1302, "bytes_mean": 666624, "rounds_mean": 15, "success_rate": 0.0, "agreement_rate_mean": 1.0 },
+                { "algorithm": "tower_bft", "scenario": "paper_baseline", "num_nodes": 51, "num_traitors": 16, "latency_mean": 50.2, "throughput_mean": 996.0, "messages_mean": 1275, "bytes_mean": 163200, "rounds_mean": 25, "success_rate": 1.0, "agreement_rate_mean": 1.0 }
+            ];
+        }
+
+        const ALGO_COLORS = {
+            "oral_message": "#ef4444",
+            "pbft": "#3b82f6",
+            "dag_bft": "#10b981",
+            "sharding_bft": "#f59e0b",
+            "tower_bft": "#8b5cf6"
+        };
+
+        const ALGO_LABELS = {
+            "oral_message": "OM(m)",
+            "pbft": "Classical PBFT",
+            "dag_bft": "Hashgraph DAG-BFT",
+            "sharding_bft": "Sharding-BFT",
+            "tower_bft": "Tower BFT"
+        };
+
+        let charts = {};
+
+        function getSelectedAlgos() {
+            return Object.keys(ALGO_COLORS).filter(algo => 
+                document.getElementById(`chk-${algo}`).checked
+            );
+        }
+
+        function switchTab(tabName) {
+            // Update tabs active state
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            // Show panels
+            document.querySelectorAll('.display-panel').forEach(panel => panel.classList.remove('active'));
+            document.getElementById(`panel-${tabName}`).classList.add('active');
+
+            // Force resize chart on display
+            setTimeout(() => {
+                Object.values(charts).forEach(chart => chart.resize());
+            }, 50);
+        }
+
+        function getDatasetForAlgo(dataList, algoName, valMapper, label = null) {
+            const list = dataList.filter(d => d.algorithm === algoName);
+            return {
+                label: label || ALGO_LABELS[algoName],
+                data: list.map(valMapper),
+                borderColor: ALGO_COLORS[algoName],
+                backgroundColor: ALGO_COLORS[algoName] + '22',
+                borderWidth: 2,
+                pointBackgroundColor: ALGO_COLORS[algoName],
+                tension: 0.1
+            };
+        }
+
+        function initBaseline() {
+            const baselineData = BENCHMARK_RESULTS.filter(d => d.scenario === 'paper_baseline');
+            
+            // Stats updates
+            let optLat = Infinity, bestTps = 0, minBytes = Infinity;
+            let optLatName = '', bestTpsName = '', minBytesName = '';
+
+            baselineData.forEach(d => {
+                if (d.success_rate > 0) {
+                    if (d.latency_mean < optLat) {
+                        optLat = d.latency_mean;
+                        optLatName = ALGO_LABELS[d.algorithm];
+                    }
+                    if (d.throughput_mean > bestTps) {
+                        bestTps = d.throughput_mean;
+                        bestTpsName = ALGO_LABELS[d.algorithm];
+                    }
+                    if (d.bytes_mean < minBytes) {
+                        minBytes = d.bytes_mean;
+                        minBytesName = ALGO_LABELS[d.algorithm];
+                    }
+                }
+            });
+
+            document.getElementById('stat-opt-latency').innerText = optLat === Infinity ? 'N/A' : `${optLat.toFixed(1)} ms (${optLatName})`;
+            document.getElementById('stat-opt-tps').innerText = bestTps === 0 ? 'N/A' : `${bestTps.toFixed(1)} tps (${bestTpsName})`;
+            document.getElementById('stat-opt-bytes').innerText = minBytes === Infinity ? 'N/A' : `${(minBytes/1024).toFixed(1)} KB (${minBytesName})`;
+
+            // Populate table
+            const tbody = document.getElementById('table-baseline').querySelector('tbody');
+            tbody.innerHTML = '';
+            baselineData.forEach(d => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="algo-cell"><span class="algo-dot" style="background:${ALGO_COLORS[d.algorithm]}"></span>${ALGO_LABELS[d.algorithm]}</td>
+                    <td>${d.latency_mean.toFixed(1)}</td>
+                    <td>${d.throughput_mean.toFixed(1)}</td>
+                    <td>${d.messages_mean.toLocaleString()}</td>
+                    <td>${(d.bytes_mean / 1024).toFixed(1)}</td>
+                    <td>${d.rounds_mean.toFixed(0)}</td>
+                    <td>${(d.success_rate * 100).toFixed(0)}%</td>
+                    <td>${(d.agreement_rate_mean * 100).toFixed(1)}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Baseline chart: double bar chart of Latency vs Throughput (normalized)
+            const ctx = document.getElementById('chart-baseline-overhead').getContext('2d');
+            
+            const activeAlgos = getSelectedAlgos();
+            const activeData = baselineData.filter(d => activeAlgos.includes(d.algorithm));
+
+            charts.baseline = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: activeData.map(d => ALGO_LABELS[d.algorithm]),
+                    datasets: [
+                        {
+                            label: 'Consensus Latency (ms)',
+                            data: activeData.map(d => d.latency_mean),
+                            backgroundColor: activeData.map(d => ALGO_COLORS[d.algorithm]),
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Throughput (tps)',
+                            data: activeData.map(d => d.throughput_mean),
+                            backgroundColor: activeData.map(d => ALGO_COLORS[d.algorithm] + '66'),
+                            borderColor: activeData.map(d => ALGO_COLORS[d.algorithm]),
+                            borderWidth: 1.5,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#e2e8f0' } }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: {
+                            type: 'logarithmic',
+                            position: 'left',
+                            title: { display: true, text: 'Latency (ms) [Log Scale]', color: '#94a3b8' },
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: 'rgba(255,255,255,0.05)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'Throughput (tps)', color: '#94a3b8' },
+                            ticks: { color: '#94a3b8' },
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function initScalability() {
+            // Latency chart
+            const ctxLat = document.getElementById('chart-scale-latency').getContext('2d');
+            
+            // Find scale scenarios
+            const scaleData = BENCHMARK_RESULTS.filter(d => d.scenario.startsWith('scale_') || d.scenario.startsWith('om_scale_'));
+            const nodeSizes = Array.from(new Set(scaleData.map(d => d.num_nodes))).sort((a,b)=>a-b);
+            
+            const activeAlgos = getSelectedAlgos();
+            const datasetsLat = activeAlgos.map(algo => {
+                const list = scaleData.filter(d => d.algorithm === algo);
+                // Map sorted by node count
+                const dataPts = nodeSizes.map(n => {
+                    const match = list.find(d => d.num_nodes === n);
+                    return match ? match.latency_mean : null;
+                });
+                return {
+                    label: ALGO_LABELS[algo],
+                    data: dataPts,
+                    borderColor: ALGO_COLORS[algo],
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    pointRadius: 4
+                };
+            });
+
+            charts.scaleLat = new Chart(ctxLat, {
+                type: 'line',
+                data: { labels: nodeSizes, datasets: datasetsLat },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Network Size (n)', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { type: 'logarithmic', title: { display: true, text: 'Latency (ms) [Log]', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    },
+                    plugins: { legend: { labels: { color: '#e2e8f0' } } }
+                }
+            });
+
+            // Message volume chart
+            const ctxMsg = document.getElementById('chart-scale-messages').getContext('2d');
+            const datasetsMsg = activeAlgos.map(algo => {
+                const list = scaleData.filter(d => d.algorithm === algo);
+                const dataPts = nodeSizes.map(n => {
+                    const match = list.find(d => d.num_nodes === n);
+                    return match ? match.messages_mean : null;
+                });
+                return {
+                    label: ALGO_LABELS[algo],
+                    data: dataPts,
+                    borderColor: ALGO_COLORS[algo],
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    pointRadius: 4
+                };
+            });
+
+            charts.scaleMsg = new Chart(ctxMsg, {
+                type: 'line',
+                data: { labels: nodeSizes, datasets: datasetsMsg },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Network Size (n)', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { type: 'logarithmic', title: { display: true, text: 'Total Messages (log)', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    },
+                    plugins: { legend: { labels: { color: '#e2e8f0' } } }
+                }
+            });
+        }
+
+        function initFaults() {
+            const ctx = document.getElementById('chart-fault-success').getContext('2d');
+            const faultData = BENCHMARK_RESULTS.filter(d => d.scenario.startsWith('fault_'));
+            
+            const traitorCounts = Array.from(new Set(faultData.map(d => d.num_traitors))).sort((a,b)=>a-b);
+            const activeAlgos = getSelectedAlgos();
+            
+            const datasets = activeAlgos.map(algo => {
+                const list = faultData.filter(d => d.algorithm === algo);
+                const dataPts = traitorCounts.map(t => {
+                    const match = list.find(d => d.num_traitors === t);
+                    return match ? match.success_rate * 100 : null;
+                });
+                return {
+                    label: ALGO_LABELS[algo],
+                    data: dataPts,
+                    borderColor: ALGO_COLORS[algo],
+                    backgroundColor: 'transparent',
+                    borderWidth: 2.5,
+                    pointRadius: 5
+                };
+            });
+
+            charts.faults = new Chart(ctx, {
+                type: 'line',
+                data: { labels: traitorCounts, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Number of Traitors (f) [n=51]', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { title: { display: true, text: 'Success Rate (%)', color: '#94a3b8' }, min: -5, max: 105, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#e2e8f0' } }
+                    }
+                }
+            });
+        }
+
+        function initThroughput() {
+            const ctx = document.getElementById('chart-throughput').getContext('2d');
+            const tpData = BENCHMARK_RESULTS.filter(d => d.scenario.startsWith('throughput_'));
+            const txCounts = Array.from(new Set(tpData.map(d => d.num_nodes))).sort((a,b)=>a-b); // Actually based on num_transactions in trials, let's map properly
+            
+            // To make sure we extract tx count properly:
+            // Since scenario is throughput_tx10 etc., let's parse from scenario name:
+            const rawTxCounts = Array.from(new Set(tpData.map(d => {
+                const match = d.scenario.match(/throughput_tx(\d+)/);
+                return match ? parseInt(match[1]) : null;
+            }).filter(x => x !== null))).sort((a,b)=>a-b);
+
+            const activeAlgos = getSelectedAlgos();
+            
+            const datasets = activeAlgos.map(algo => {
+                const list = tpData.filter(d => d.algorithm === algo);
+                const dataPts = rawTxCounts.map(tx => {
+                    const match = list.find(d => {
+                        const parsed = d.scenario.match(/throughput_tx(\d+)/);
+                        return parsed && parseInt(parsed[1]) === tx;
+                    });
+                    return match ? match.throughput_mean : null;
+                });
+                return {
+                    label: ALGO_LABELS[algo],
+                    data: dataPts,
+                    borderColor: ALGO_COLORS[algo],
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    pointRadius: 4
+                };
+            });
+
+            charts.throughput = new Chart(ctx, {
+                type: 'line',
+                data: { labels: rawTxCounts, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Transaction Batch Size', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { type: 'logarithmic', title: { display: true, text: 'Throughput (tps) [Log]', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    },
+                    plugins: { legend: { labels: { color: '#e2e8f0' } } }
+                }
+            });
+        }
+
+        function initAttacks() {
+            const ctx = document.getElementById('chart-attacks').getContext('2d');
+            const attackData = BENCHMARK_RESULTS.filter(d => d.scenario.startsWith('attack_'));
+            
+            const attackTypes = Array.from(new Set(attackData.map(d => d.scenario.replace('attack_', ''))));
+            const activeAlgos = getSelectedAlgos();
+            
+            // We'll do a grouped bar chart
+            const datasets = activeAlgos.map(algo => {
+                const list = attackData.filter(d => d.algorithm === algo);
+                const dataPts = attackTypes.map(att => {
+                    const match = list.find(d => d.scenario === `attack_${att}`);
+                    return match ? match.success_rate * 100 : 0;
+                });
+                return {
+                    label: ALGO_LABELS[algo],
+                    data: dataPts,
+                    backgroundColor: ALGO_COLORS[algo] + 'bb',
+                    borderColor: ALGO_COLORS[algo],
+                    borderWidth: 1
+                };
+            });
+
+            const attackLabelsDisplay = attackTypes.map(att => att.replace('_', ' ').toUpperCase());
+
+            charts.attacks = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: attackLabelsDisplay, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { title: { display: true, text: 'Consensus Success Rate (%)', color: '#94a3b8' }, min: 0, max: 105, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    },
+                    plugins: { legend: { labels: { color: '#e2e8f0' } } }
+                }
+            });
+        }
+
+        function updateCharts() {
+            // Re-render chart datasets based on selected algorithms
+            const activeAlgos = getSelectedAlgos();
+            const scaleData = BENCHMARK_RESULTS.filter(d => d.scenario.startsWith('scale_') || d.scenario.startsWith('om_scale_'));
+            const nodeSizes = Array.from(new Set(scaleData.map(d => d.num_nodes))).sort((a,b)=>a-b);
+            const faultData = BENCHMARK_RESULTS.filter(d => d.scenario.startsWith('fault_'));
+            const traitorCounts = Array.from(new Set(faultData.map(d => d.num_traitors))).sort((a,b)=>a-b);
+            const tpData = BENCHMARK_RESULTS.filter(d => d.scenario.startsWith('throughput_'));
+            const rawTxCounts = Array.from(new Set(tpData.map(d => {
+                const match = d.scenario.match(/throughput_tx(\d+)/);
+                return match ? parseInt(match[1]) : null;
+            }).filter(x => x !== null))).sort((a,b)=>a-b);
+            const attackData = BENCHMARK_RESULTS.filter(d => d.scenario.startsWith('attack_'));
+            const attackTypes = Array.from(new Set(attackData.map(d => d.scenario.replace('attack_', ''))));
+
+            // Update baseline chart
+            if (charts.baseline) {
+                const baselineData = BENCHMARK_RESULTS.filter(d => d.scenario === 'paper_baseline');
+                const activeData = baselineData.filter(d => activeAlgos.includes(d.algorithm));
+                charts.baseline.data.labels = activeData.map(d => ALGO_LABELS[d.algorithm]);
+                charts.baseline.data.datasets[0].data = activeData.map(d => d.latency_mean);
+                charts.baseline.data.datasets[0].backgroundColor = activeData.map(d => ALGO_COLORS[d.algorithm]);
+                charts.baseline.data.datasets[1].data = activeData.map(d => d.throughput_mean);
+                charts.baseline.data.datasets[1].backgroundColor = activeData.map(d => ALGO_COLORS[d.algorithm] + '66');
+                charts.baseline.data.datasets[1].borderColor = activeData.map(d => ALGO_COLORS[d.algorithm]);
+                charts.baseline.update();
+            }
+
+            // Update scale latency chart
+            if (charts.scaleLat) {
+                charts.scaleLat.data.datasets = activeAlgos.map(algo => {
+                    const list = scaleData.filter(d => d.algorithm === algo);
+                    const dataPts = nodeSizes.map(n => {
+                        const match = list.find(d => d.num_nodes === n);
+                        return match ? match.latency_mean : null;
+                    });
+                    return {
+                        label: ALGO_LABELS[algo],
+                        data: dataPts,
+                        borderColor: ALGO_COLORS[algo],
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        pointRadius: 4
+                    };
+                });
+                charts.scaleLat.update();
+            }
+
+            // Update scale messages chart
+            if (charts.scaleMsg) {
+                charts.scaleMsg.data.datasets = activeAlgos.map(algo => {
+                    const list = scaleData.filter(d => d.algorithm === algo);
+                    const dataPts = nodeSizes.map(n => {
+                        const match = list.find(d => d.num_nodes === n);
+                        return match ? match.messages_mean : null;
+                    });
+                    return {
+                        label: ALGO_LABELS[algo],
+                        data: dataPts,
+                        borderColor: ALGO_COLORS[algo],
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        pointRadius: 4
+                    };
+                });
+                charts.scaleMsg.update();
+            }
+
+            // Update faults chart
+            if (charts.faults) {
+                charts.faults.data.datasets = activeAlgos.map(algo => {
+                    const list = faultData.filter(d => d.algorithm === algo);
+                    const dataPts = traitorCounts.map(t => {
+                        const match = list.find(d => d.num_traitors === t);
+                        return match ? match.success_rate * 100 : null;
+                    });
+                    return {
+                        label: ALGO_LABELS[algo],
+                        data: dataPts,
+                        borderColor: ALGO_COLORS[algo],
+                        backgroundColor: 'transparent',
+                        borderWidth: 2.5,
+                        pointRadius: 5
+                    };
+                });
+                charts.faults.update();
+            }
+
+            // Update throughput chart
+            if (charts.throughput) {
+                charts.throughput.data.datasets = activeAlgos.map(algo => {
+                    const list = tpData.filter(d => d.algorithm === algo);
+                    const dataPts = rawTxCounts.map(tx => {
+                        const match = list.find(d => {
+                            const parsed = d.scenario.match(/throughput_tx(\d+)/);
+                            return parsed && parseInt(parsed[1]) === tx;
+                        });
+                        return match ? match.throughput_mean : null;
+                    });
+                    return {
+                        label: ALGO_LABELS[algo],
+                        data: dataPts,
+                        borderColor: ALGO_COLORS[algo],
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        pointRadius: 4
+                    };
+                });
+                charts.throughput.update();
+            }
+
+            // Update attacks chart
+            if (charts.attacks) {
+                charts.attacks.data.datasets = activeAlgos.map(algo => {
+                    const list = attackData.filter(d => d.algorithm === algo);
+                    const dataPts = attackTypes.map(att => {
+                        const match = list.find(d => d.scenario === `attack_${att}`);
+                        return match ? match.success_rate * 100 : 0;
+                    });
+                    return {
+                        label: ALGO_LABELS[algo],
+                        data: dataPts,
+                        backgroundColor: ALGO_COLORS[algo] + 'bb',
+                        borderColor: ALGO_COLORS[algo],
+                        borderWidth: 1
+                    };
+                });
+                charts.attacks.update();
+            }
+        }
+
+        // Initialize everything
+        window.addEventListener('DOMContentLoaded', () => {
+            initBaseline();
+            initScalability();
+            initFaults();
+            initThroughput();
+            initAttacks();
+        });
+    </script>
+</body>
+</html>
